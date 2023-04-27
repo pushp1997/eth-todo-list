@@ -9,9 +9,29 @@ App = {
     },
 
     loadAccount: async () => {
-        const accounts = await ethereum.request({ method: 'eth_accounts' });
-        App.account = accounts[0];
-        console.log(accounts[0]);
+        // Modern dapp browsers...
+        if (window.ethereum) {
+            App.web3Provider = window.ethereum;
+            try {
+                // Request account access
+                await window.ethereum.enable();
+            } catch (error) {
+                // User denied account access...
+                console.error("User denied account access")
+            }
+        }
+        // Legacy dapp browsers...
+        else if (window.web3) {
+            App.web3Provider = window.web3.currentProvider;
+        }
+        // If no injected web3 instance is detected, fall back to Ganache
+        else {
+            App.web3Provider = new Web3.providers.HttpProvider('http://localhost:7545');
+        }
+        web3 = new Web3(App.web3Provider);
+
+        // Set the current blockchain account
+        App.account = await web3.eth.defaultAccount;
     },
 
     loadContract: async () => {
@@ -102,7 +122,6 @@ App = {
     toggleCompleted: async (e) => {
         App.setLoading(true);
         const taskId = e.target.name;
-        console.log(taskId);
         await App.todoList.toggleCompleted(taskId, { from: App.account });
         window.location.reload();
     },
